@@ -1,89 +1,129 @@
 let draggedCard = null;
 
-const columns = [
-    { id: 'todo', title: 'ToDo' },
-    { id: 'in-progress', title: 'Doing' },
-    { id: 'done', title: 'Done' }
-];
+        const columns = [
+            { id: 'todo', title: 'ToDo' },
+            { id: 'in-progress', title: 'Doing' },
+            { id: 'done', title: 'Done' }
+        ];
 
-function createColumn({ title }) {
-    const col = document.createElement('div');
-    col.className = 'column';
-    col.innerHTML = `
-    <div class="column-header">${title}</div>
-    <div class="cards-container"></div>
-    <div class="add-card-form">
-        <textarea placeholder="Escribe el título..."></textarea>
-        <div class="form-actions">
-            <button class="confirm-btn">Añadir</button>
-            <button class="cancel-btn">✕</button>
-        </div>
-    </div>
-    <button class="add-card-btn"><span>＋</span>Añadir tarjeta</button>
-    `;
+        // Crear columna completa
+        function createColumn(col) {
+            const column = Object.assign(document.createElement('div'), {
+                className: 'column',
+                innerHTML: `
+                    <div class="column-header">${col.title}</div>
+                    <div class="cards-container"></div>
+                    <div class="add-card-form">
+                        <textarea placeholder="Escribe el título de la tarjeta..."></textarea>
+                        <div class="form-actions">
+                            <button class="confirm-btn">Añadir tarjeta</button>
+                            <button class="cancel-btn">✕</button>
+                        </div>
+                    </div>
+                    <button class="add-card-btn"><span>＋</span><span>Añadir una tarjeta</span></button>
+                `
+            });
 
-    const container = col.querySelector('.cards-container');
-    const form = col.querySelector('.add-card-form');
-    const textarea = form.querySelector('textarea');
-    const addBtn = col.querySelector('.add-card-btn');
+            const form = column.querySelector('.add-card-form');
+            const textarea = column.querySelector('textarea');
+            const addBtn = column.querySelector('.add-card-btn');
+            const container = column.querySelector('.cards-container');
 
-    // Mostrar / ocultar formulario
-    addBtn.onclick = () => { form.classList.add('active'); addBtn.style.display = 'none'; textarea.focus(); };
-    form.querySelector('.cancel-btn').onclick = () => { form.classList.remove('active'); addBtn.style.display = 'flex'; textarea.value = ''; };
+            // Mostrar/ocultar formulario
+            addBtn.onclick = () => {
+                form.classList.add('active');
+                addBtn.style.display = 'none';
+                textarea.focus();
+            };
 
-    // Añadir tarjeta
-    form.querySelector('.confirm-btn').onclick = () => {
-        const text = textarea.value.trim();
-        if (!text) return;
-        addCard(text, container);
-        textarea.value = '';
-        textarea.focus();
-    };
-    textarea.onkeydown = e => { if (e.key === 'Enter' && !e.ctrlKey) { e.preventDefault(); form.querySelector('.confirm-btn').click(); } };
+            column.querySelector('.cancel-btn').onclick = () => {
+                form.classList.remove('active');
+                addBtn.style.display = 'flex';
+                textarea.value = '';
+            };
 
-    // Drag and drop
-    col.ondragover = e => {
-        e.preventDefault();
-        const cards = [...container.querySelectorAll('.card:not(.dragging)')];
-        const after = cards.find(c => e.clientY < c.getBoundingClientRect().top + c.offsetHeight / 2);
-        container.insertBefore(document.querySelector('.drag-placeholder') || createPlaceholder(), after || null);
-    };
+            // Añadir tarjeta
+            column.querySelector('.confirm-btn').onclick = () => {
+                if (textarea.value.trim()) {
+                    addCard(textarea.value.trim(), container);
+                    textarea.value = '';
+                    textarea.focus();
+                }
+            };
 
-    col.ondrop = e => {
-        e.preventDefault();
-        const placeholder = container.querySelector('.drag-placeholder');
-        if (draggedCard && placeholder) container.insertBefore(draggedCard, placeholder);
-        cleanupDrag();
-    };
+            textarea.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.ctrlKey) {
+                    e.preventDefault();
+                    column.querySelector('.confirm-btn').click();
+                }
+            };
 
-    col.ondragleave = e => { if (e.target === col) cleanupDrag(); };
+            // Drag and drop
+            column.ondragover = (e) => {
+                e.preventDefault();
+                column.classList.add('drag-over');
+                const after = [...container.querySelectorAll('.card:not(.dragging)')].reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = e.clientY - box.top - box.height / 2;
+                    return offset < 0 && offset > closest.offset ? { offset, element: child } : closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
 
-    return col;
-}
+                container.querySelectorAll('.drag-placeholder').forEach(p => p.remove());
+                const placeholder = Object.assign(document.createElement('div'), { className: 'drag-placeholder' });
+                after ? container.insertBefore(placeholder, after) : container.appendChild(placeholder);
+            };
 
-function addCard(text, container) {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.draggable = true;
-    card.innerHTML = `<div class="card-content">${text}</div><button class="delete-btn">✕</button>`;
+            column.ondrop = (e) => {
+                e.preventDefault();
+                if (draggedCard) {
+                    const after = [...container.querySelectorAll('.card:not(.dragging)')].reduce((closest, child) => {
+                        const box = child.getBoundingClientRect();
+                        const offset = e.clientY - box.top - box.height / 2;
+                        return offset < 0 && offset > closest.offset ? { offset, element: child } : closest;
+                    }, { offset: Number.NEGATIVE_INFINITY }).element;
+                    
+                    after ? container.insertBefore(draggedCard, after) : container.appendChild(draggedCard);
+                }
+                column.classList.remove('drag-over');
+                container.querySelectorAll('.drag-placeholder').forEach(p => p.remove());
+            };
 
-    card.ondragstart = () => { draggedCard = card; card.classList.add('dragging'); };
-    card.ondragend = cleanupDrag;
-    card.querySelector('.delete-btn').onclick = () => { card.remove(); };
+            column.ondragleave = (e) => {
+                if (e.target === column) column.classList.remove('drag-over');
+            };
 
-    container.appendChild(card);
-}
+            return column;
+        }
 
-function createPlaceholder() {
-    const p = document.createElement('div');
-    p.className = 'drag-placeholder';
-    return p;
-}
+        // Añadir tarjeta
+        function addCard(text, container) {
+            const card = Object.assign(document.createElement('div'), {
+                className: 'card',
+                draggable: true,
+                innerHTML: `<div class="card-content">${text}</div><button class="delete-btn">✕</button>`
+            });
 
-function cleanupDrag() {
-    draggedCard?.classList.remove('dragging');
-    draggedCard = null;
-    document.querySelectorAll('.drag-placeholder').forEach(p => p.remove());
-}
+            card.ondragstart = () => {
+                draggedCard = card;
+                card.classList.add('dragging');
+            };
 
-columns.forEach(c => document.querySelector('.kanban-container').appendChild(createColumn(c)));
+            card.ondragend = () => {
+                card.classList.remove('dragging');
+                draggedCard = null;
+                document.querySelectorAll('.drag-placeholder').forEach(p => p.remove());
+                document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
+            };
+
+            card.querySelector('.delete-btn').onclick = () => {
+                card.style.transition = 'all 0.3s ease';
+                card.style.transform = 'scale(0.8)';
+                card.style.opacity = '0';
+                setTimeout(() => card.remove(), 300);
+            };
+
+            container.appendChild(card);
+        }
+
+        // Inicializar
+        columns.forEach(col => document.querySelector('.kanban-container').appendChild(createColumn(col)));
