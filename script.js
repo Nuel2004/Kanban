@@ -44,28 +44,19 @@ function createColumn(col) {
     const textarea = column.querySelector('textarea');
     const addBtn = column.querySelector('.add-card-btn');
     const container = column.querySelector('.cards-container');
-    
-    /**
-     * Muestra el formulario de añadir tarjeta y pone el foco en el textarea.
-     */
+
     addBtn.onclick = () => {
         form.classList.add('active');
         addBtn.style.display = 'none';
         textarea.focus();
     };
 
-    /**
-     * Oculta el formulario y limpia el contenido del textarea.
-     */
     column.querySelector('.cancel-btn').onclick = () => {
         form.classList.remove('active');
         addBtn.style.display = 'flex';
         textarea.value = '';
     };
 
-    /**
-     * Valida el input y llama a la función para crear la tarjeta.
-     */
     column.querySelector('.confirm-btn').onclick = () => {
         if (textarea.value.trim()) {
             addCard(textarea.value.trim(), container);
@@ -153,17 +144,11 @@ function addCard(text, container) {
         innerHTML: `<div class="card-content">${text}</div><button class="delete-btn">✕</button>`
     });
 
-    /**
-     * Inicia el proceso de arrastre. Guarda la referencia en `draggedCard`.
-     */
     card.ondragstart = () => {
         draggedCard = card;
         card.classList.add('dragging');
     };
 
-    /**
-     * Finaliza el proceso de arrastre (se suelte o no). Limpia referencias y estilos.
-     */
     card.ondragend = () => {
         card.classList.remove('dragging');
         draggedCard = null;
@@ -171,9 +156,6 @@ function addCard(text, container) {
         document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
     };
 
-    /**
-     * Elimina la tarjeta con una animación de desvanecimiento.
-     */
     card.querySelector('.delete-btn').onclick = () => {
         card.style.transition = 'all 0.3s ease';
         card.style.transform = 'scale(0.8)';
@@ -184,5 +166,4 @@ function addCard(text, container) {
     container.appendChild(card);
 }
 
-// Inicialización: Genera las columnas y las añade al contenedor principal
 columns.forEach(col => document.querySelector('.kanban-container').appendChild(createColumn(col)));
